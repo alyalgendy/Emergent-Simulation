@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Emergent Life Simulation</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+    canvas { display: block; margin: 0 auto; background: #eee; }
+    .toolbar { display: flex; padding: 10px; background: #ddd; }
+    .entity { margin-right: 10px; padding: 5px; background: #fff; border: 1px solid #ccc; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <div class="entity" draggable="true">Cell</div>
+    <div class="entity" draggable="true">Predator</div>
+  </div>
+  <canvas id="simulationCanvas" width="800" height="600"></canvas>
+
+  <script>
+    const canvas = document.getElementById('simulationCanvas');
+    const ctx = canvas.getContext('2d');
+    const ws = new WebSocket('ws://localhost:8080');
+
+    ws.onopen = () => {
+      console.log('WebSocket connected');
+    };
+
+    ws.onmessage = (event) => {
+      const entities = JSON.parse(event.data);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      entities.forEach(({ x, y, type }) => {
+        ctx.fillStyle = type === 'Cell' ? 'green' : 'red';
+        ctx.fillRect(x, y, 10, 10);
+      });
+    };
+
+    document.querySelectorAll('.entity').forEach((el) => {
+      el.addEventListener('dragstart', (event) => {
+        event.dataTransfer.setData('entityType', el.textContent);
+      });
+    });
+
+    canvas.addEventListener('drop', (event) => {
+      event.preventDefault();
+      const entityType = event.dataTransfer.getData('entityType');
+      const x = event.offsetX;
+      const y = event.offsetY;
+      ws.send(JSON.stringify({ action: 'add', x, y, type: entityType }));
+    });
+
+    canvas.addEventListener('dragover', (event) => {
+      event.preventDefault();
+    });
+  </script>
+</body>
+</html>
